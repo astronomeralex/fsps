@@ -26,10 +26,10 @@ SUBROUTINE ADD_NEBULAR(pset,sspi,sspo)
   !set up the interpolation variables for logZ and logU
   z1 = MAX(MIN(locate(nebem_logz,pset%gas_logz),nebnz-1),1)
   dz = (pset%gas_logz-nebem_logz(z1))/(nebem_logz(z1+1)-nebem_logz(z1))
-  dz = MAX(MIN(dz,1.0),0.0) !no extrapolations
+  dz = MAX(MIN(dz,1.0),0.0) !no extrapolation
   u1 = MAX(MIN(locate(nebem_logu,pset%gas_logu),nebnip-1),1)
   du = (pset%gas_logu-nebem_logu(u1))/(nebem_logu(u1+1)-nebem_logu(u1))
-  du = MAX(MIN(du,1.0),0.0) !no extrapolations
+  du = MAX(MIN(du,1.0),0.0) !no extrapolation
 
   !set up a "master" array of normalized Gaussians
   !this makes the code much faster
@@ -42,8 +42,8 @@ SUBROUTINE ADD_NEBULAR(pset,sspi,sspo)
         dlam = pset%sigma_smooth
      ENDIF
      !broaden the line to at least the resolution element 
-     !of the spectrum.  This is approximate.
-     dlam = MAX(dlam,neb_res_min(i))
+     !of the spectrum (x2).
+     dlam = MAX(dlam,neb_res_min(i)*2)
      tmparr(:,i) = 1/SQRT(2*mypi)/dlam*&
           EXP(-(spec_lambda-nebem_line_pos(i))**2/2/dlam**2)  / &
           clight*nebem_line_pos(i)**2

@@ -87,8 +87,8 @@
 87  UVOT_W2		UVOT W2 (from Erik Hoversten, 2011)
 88  UVOT_M2		UVOT M2 (from Erik Hoversten, 2011)
 89  UVOT_W1		UVOT W1 (from Erik Hoversten, 2011)
-90  MPIS_24		Spitzer MIPS 24um
-91  MPIS_70		Spitzer MIPS 70um
+90  MIPS_24		Spitzer MIPS 24um
+91  MIPS_70		Spitzer MIPS 70um
 92  MIPS_160		Spitzer MIPS 160um
 93  SCUBA_450WB		SCUBA 450WB (www.jach.hawaii.edu/JCMT/continuum/background/background.html)
 94  SCUBA_850WB		SCUBA 850WB (www.jach.hawaii.edu/JCMT/continuum/background/background.html)
@@ -126,3 +126,18 @@
 126 NEWFIRM_H1		NEWFIRM H1 (via 3DHST filter list)
 127 NEWFIRM_H2		NEWFIRM H2 (via 3DHST filter list)
 128 NEWFIRM_K		NEWFIRM K  (via 3DHST filter list)
+129 VISTA_Y		VISTA VIRCAM Y (http://www.astro.caltech.edu/~capak/filters/index.html)
+130 VISTA_J		VISTA VIRCAM J (http://www.astro.caltech.edu/~capak/filters/index.html)
+131 VISTA_H		VISTA VIRCAM H (http://www.astro.caltech.edu/~capak/filters/index.html)
+132 VISTA_K		VISTA VIRCAM K (http://www.astro.caltech.edu/~capak/filters/index.html)
+133 SUPRIMECAM_B	Subaru Suprime-Cam B (http://www.astro.caltech.edu/~capak/filters/index.html)
+134 SUPRIMECAM_g	Subaru Suprime-Cam g+ (http://www.astro.caltech.edu/~capak/filters/index.html)
+135 SUPRIMECAM_V	Subaru Suprime-Cam V (http://www.astro.caltech.edu/~capak/filters/index.html)
+136 SUPRIMECAM_r	Subaru Suprime-Cam r+ (http://www.astro.caltech.edu/~capak/filters/index.html)
+137 SUPRIMECAM_i	Subaru Suprime-Cam i+ (http://www.astro.caltech.edu/~capak/filters/index.html)
+138 SUPRIMECAM_z	Subaru Suprime-Cam z+ (http://www.astro.caltech.edu/~capak/filters/index.html)
+139 PS1_g		Pan-STARRS1 g (http://iopscience.iop.org/0004-637X/750/2/99/suppdata/apj425122t3_mrt.txt)
+140 PS1_r		Pan-STARRS1 r (http://iopscience.iop.org/0004-637X/750/2/99/suppdata/apj425122t3_mrt.txt)
+141 PS1_i		Pan-STARRS1 i (http://iopscience.iop.org/0004-637X/750/2/99/suppdata/apj425122t3_mrt.txt)
+142 PS1_z		Pan-STARRS1 z (http://iopscience.iop.org/0004-637X/750/2/99/suppdata/apj425122t3_mrt.txt)
+143 PS1_y		Pan-STARRS1 y (http://iopscience.iop.org/0004-637X/750/2/99/suppdata/apj425122t3_mrt.txt)

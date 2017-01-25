@@ -1,3 +1,17 @@
 *.o
+<<<<<<< HEAD
 *.exe
 *.mod
+=======
+*.mod
+*.exe
+nr
+SPECTRA/CKC14/*
+OUTPUTS/*
+CodeToDo.txt
+runsps.f90
+metalml.f90
+colorteff.f90
+bytype.f90
+Makefile.prv
+>>>>>>> 5b84bd71aa85c90ce51cc429c797484babc3e7d5

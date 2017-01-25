@@ -6,16 +6,18 @@ MODULE SPS_VARS
   SAVE
 
 !-------set the spectral library------!
-#define BASEL 1
-#define MILES 0
-! "CKC14" currently under development.  do not use!
-#define CKC14 0
+#define MILES 1
+#define BASEL 0
+! "C3K" currently under development.  do not use.
+#define C3K 0
 
 !------set the isochrone library------!
-#define PADOVA 1
+#define MIST 1
+!Padova models circa 2008
+#define PADOVA 0
+#define PARSEC 0
 #define BASTI 0
 #define GENEVA 0
-#define MIST 0
 
   !--------------------------------------------------------------!
   !--------------------------------------------------------------!
@@ -29,9 +31,6 @@ MODULE SPS_VARS
   !setup cosmology (WMAP7).  Used only for z(t) relation.
   REAL(SP) :: om0=0.27, ol0=0.73, H0=72.
 
-  !define solar metallicity
-  REAL(SP), PARAMETER :: zsol=0.0190 
-  
   !controls the level of output
   !0 = minimal output to screen.
   !1 = lots of output to screen.  useful for debugging.
@@ -40,7 +39,7 @@ MODULE SPS_VARS
   !flag specifying TP-AGB normalization scheme
   !0 = default Padova 2007 isochrones
   !1 = Conroy & Gunn 2010 normalization
-  !2 = Villaume, Conroy, Johnson 2014 normalization
+  !2 = Villaume, Conroy, Johnson 2015 normalization
   INTEGER :: tpagb_norm_type=2
 
   !turn-on time for BHB and SBS phases, time is in log(yrs)
@@ -51,7 +50,15 @@ MODULE SPS_VARS
   INTEGER :: pzcon=0
   
   !the factor by which we increase the time array
-  INTEGER, PARAMETER :: time_res_incr=2
+  !this should no longer need to be set to anything other than 1
+  INTEGER, PARAMETER :: time_res_incr=1
+
+  !whether to interpolate the SSPs in logt (0) or t (1)
+  integer :: interpolation_type = 0
+
+  !The log of the minimum age to use when computing CSPs.  The spectrum for
+  !this age is taken from the youngest available SSP.  Should be less than ~3
+  real(SP) :: tiny_logt = 0.0
 
   !Use Aringer et al. (2009) Carbon star library if set
   !otherwise use Lancon & Wood (2002) empirical spectra
@@ -63,6 +70,9 @@ MODULE SPS_VARS
 
   !turn on/off the Draine & Li 2007 dust emission model 
   INTEGER :: add_dust_emission=1
+
+  !turn on/off the Nenkova et al. 2008 AGN torus dust model
+  INTEGER :: add_agn_dust=1
 
   !turn on/off the AGB circumstellar dust model
   !see Villaume et al. (2014) for details
@@ -94,6 +104,10 @@ MODULE SPS_VARS
   !smooth in Angstrom space (in all cases the width of the 
   !kernel is a sigma, not FWHM)
   INTEGER :: smooth_velocity=1
+
+  !if set, smooth the SSPs within ssp_gen by an instrumental
+  !LSF that is specified in data/lsf.dat
+  INTEGER :: smooth_lsf=0
 
   !set attenuation-law for the diffuse ISM
   !0 = power-law attenuation.  See dust_index variable below
@@ -130,7 +144,7 @@ MODULE SPS_VARS
 
   !flag indicating whether to use the Mdot tabulated in the isochrone
   !files (if available) for the AGB dust model.  Note: only use this
-  !feature in conjunction with isochrone files that include Mdot!
+  !feature with isochrone files that include Mdot (e.g., MIST)
   INTEGER, PARAMETER :: use_isoc_mdot=0
 
   !------------Pre-compiler defintions------------!
@@ -138,18 +152,27 @@ MODULE SPS_VARS
   !flag indicating type of isochrones to use
   !and number of metallicities in the set
 #if (BASTI)
+  REAL(SP), PARAMETER :: zsol = 0.020
   CHARACTER(4), PARAMETER :: isoc_type = 'bsti'
   INTEGER, PARAMETER :: nt=94
   INTEGER, PARAMETER :: nz=10
 #elif (GENEVA)
+  REAL(SP), PARAMETER :: zsol = 0.020
   CHARACTER(4), PARAMETER :: isoc_type = 'gnva'
   INTEGER, PARAMETER :: nt=51
   INTEGER, PARAMETER :: nz=5
 #elif (MIST)
+  REAL(SP), PARAMETER :: zsol = 0.0142
   CHARACTER(4), PARAMETER :: isoc_type = 'mist'
   INTEGER, PARAMETER :: nt=107
-  INTEGER, PARAMETER :: nz=8
-#else
+  INTEGER, PARAMETER :: nz=12
+#elif (PARSEC)
+  REAL(SP), PARAMETER :: zsol = 0.01524
+  CHARACTER(4), PARAMETER :: isoc_type = 'prsc'
+  INTEGER, PARAMETER :: nt=93
+  INTEGER, PARAMETER :: nz=15
+#elif (PADOVA)
+  REAL(SP), PARAMETER :: zsol = 0.019
   CHARACTER(4), PARAMETER :: isoc_type = 'pdva'
   INTEGER, PARAMETER :: nt=94
   INTEGER, PARAMETER :: nz=22
@@ -158,14 +181,17 @@ MODULE SPS_VARS
   !flag indicating type of spectral library to use
   !and number of elements per stellar spectrum
 #if (MILES)
+  REAL(SP), PARAMETER :: zsol_spec = 0.019
   CHARACTER(5), PARAMETER :: spec_type = 'miles'
   INTEGER, PARAMETER :: nzinit=5
   INTEGER, PARAMETER :: nspec=5994
-#elif (CKC14)
+#elif (C3K)
+  REAL(SP), PARAMETER :: zsol_spec = 0.0134
   CHARACTER(5), PARAMETER :: spec_type = 'ckc14'
   INTEGER, PARAMETER :: nzinit=6
-  INTEGER, PARAMETER :: nspec=10000   ! 47378, 26500
+  INTEGER, PARAMETER :: nspec=47378  !46666 !47378 !, 26500
 #elif (BASEL)
+  REAL(SP), PARAMETER :: zsol_spec = 0.020
   CHARACTER(5), PARAMETER :: spec_type = 'basel'
   INTEGER, PARAMETER :: nzinit=6
   INTEGER, PARAMETER :: nspec=1963
@@ -181,8 +207,7 @@ MODULE SPS_VARS
 
   !You must change the number of bands here if
   !filters are added to allfilters.dat
-  !kr06=61, kr02,kr03,kr04=101, kr01,kr11=102, normal=122
-  INTEGER, PARAMETER :: nbands=122
+  INTEGER, PARAMETER :: nbands=143
   !number of indices defined in allindices.dat
   INTEGER, PARAMETER :: nindx=30
   
@@ -193,8 +218,8 @@ MODULE SPS_VARS
   INTEGER, PARAMETER :: nm=2000  !10000
   !max number of lines to read in
   INTEGER, PARAMETER ::  nlines=1000000
-  !max number of lines in tabulated SFH
-  INTEGER, PARAMETER :: ntabmax=10000
+  !max number of lines in tabulated SFH, LSF
+  INTEGER, PARAMETER :: ntabmax=20000
   !dimensions of BaSeL library
   INTEGER, PARAMETER :: ndim_logt=68, ndim_logg=19
   !number of O-rich, C-rich AGB spectra (and Aringer C-rich spec)
@@ -203,6 +228,8 @@ MODULE SPS_VARS
   INTEGER, PARAMETER :: ndim_pagb=14
   !number of WR spectra
   INTEGER, PARAMETER :: ndim_wr=12
+  !dimensions of WMBasic grid
+  INTEGER, PARAMETER :: ndim_wmb_logt=11,ndim_wmb_logg=3
   !wavelength dimension of the Draine & Li 2007 dust model
   INTEGER, PARAMETER :: ndim_dl07=1001
   !number of Umin models from Drain & Li 2007 dust model
@@ -210,9 +237,13 @@ MODULE SPS_VARS
   !parameters for circumstellar dust models
   INTEGER, PARAMETER :: ntau_dagb=50, nteff_dagb=6
   !number of emission lines and continuum emission points
-  INTEGER, PARAMETER :: nemline=108, nlam_nebcont=1963
+  INTEGER, PARAMETER :: nemline=128, nlam_nebcont=1963
   !number of metallicity, age, and ionization parameter points
-  INTEGER, PARAMETER :: nebnz=7, nebnage=12, nebnip=7
+  INTEGER, PARAMETER :: nebnz=11, nebnage=8, nebnip=7
+  !number of optical depths for AGN dust models
+  INTEGER, PARAMETER :: nagndust=9
+  !number of spectral points in the input library
+  INTEGER, PARAMETER :: nagndust_spec=125
 
   !------------IMF-related Constants--------------!
   
@@ -339,6 +370,11 @@ MODULE SPS_VARS
   REAL(SP), DIMENSION(ndim_logt) :: speclib_logt=0.
   REAL(SP), DIMENSION(ndim_logg) :: speclib_logg=0.
   REAL(KIND(1.0)), DIMENSION(nspec,nz,ndim_logt,ndim_logg) :: speclib=0.
+ 
+  !arrays for the WMBasic grid
+  REAL(SP), DIMENSION(ndim_wmb_logt) :: wmb_logt=0.
+  REAL(SP), DIMENSION(ndim_wmb_logg) :: wmb_logg=0.
+  REAL(KIND(1.0)), DIMENSION(nspec,nz,ndim_wmb_logt,ndim_wmb_logg) :: wmb_spec=0.
   
   !AGB library (Lancon & Mouhcine 2002)
   REAL(SP), DIMENSION(nspec,n_agb_o) :: agb_spec_o=0.
@@ -378,6 +414,10 @@ MODULE SPS_VARS
   !on the resolution of the spectral libraries.
   REAL(SP), DIMENSION(nspec)   :: neb_res_min=0.0
 
+  !arrays for AGN dust
+  REAL(SP), DIMENSION(nagndust)       :: agndust_tau=0.
+  REAL(SP), DIMENSION(nspec,nagndust) :: agndust_spec=0.
+
   !arrays for the isochrone data
   REAL(SP), DIMENSION(nz,nt,nm) :: mact_isoc=0.,logl_isoc=0.,&
        logt_isoc=0.,logg_isoc=0.,ffco_isoc=0.,phase_isoc=0.,&
@@ -404,11 +444,12 @@ MODULE SPS_VARS
           const=0.,tage=0.,fburst=0.,tburst=11.0,dust1=0.,dust2=0.,&
           logzsol=0.,zred=0.,pmetals=0.02,imf1=1.3,imf2=2.3,imf3=2.3,&
           vdmc=0.08,dust_clumps=-99.,frac_nodust=0.,dust_index=-0.7,&
-          dust_tesc=7.0,frac_obrun=0.,uvb=1.0,mwr=3.1,redgb=1.0,&
+          dust_tesc=7.0,frac_obrun=0.,uvb=1.0,mwr=3.1,redgb=1.0,agb=1.0,&
           dust1_index=-1.0,mdave=0.5,sf_start=0.,sf_trunc=0.,sf_slope=0.,&
           duste_gamma=0.01,duste_umin=1.0,duste_qpah=3.5,fcstar=1.0,&
           masscut=150.0,sigma_smooth=0.,agb_dust=1.0,min_wave_smooth=1E3,&
-          max_wave_smooth=1E4,gas_logu=-2.0,gas_logz=0.,igm_factor=1.0
+          max_wave_smooth=1E4,gas_logu=-2.0,gas_logz=0.,igm_factor=1.0,&
+          fagn=0.0,agn_tau=10.0
      INTEGER :: zmet=1,sfh=0,wgp1=1,wgp2=1,wgp3=1,evtype=-1
      INTEGER, DIMENSION(nbands) :: mag_compute=1
      INTEGER, DIMENSION(nt) :: ssp_gen_age=1
@@ -417,12 +458,26 @@ MODULE SPS_VARS
   
   !structure for the output of the compsp routine
   TYPE COMPSPOUT
-     REAL(SP) :: age=0.,mass_csp=0.,lbol_csp=0.,sfr=0.,mdust=0.
+     REAL(SP) :: age=0.,mass_csp=0.,lbol_csp=0.,sfr=0.,mdust=0.,mformed=0.
      REAL(SP), DIMENSION(nbands) :: mags=0.
      REAL(SP), DIMENSION(nspec)  :: spec=0.
      REAL(SP), DIMENSION(nindx)  :: indx=0.
   END TYPE COMPSPOUT
-  
+
+  ! A structure to hold SFH params converted to intrinsic units
+  TYPE SFHPARAMS
+     REAL(SP) :: tau=1.0,tage=0.,tburst=0.,sf_trunc=0.,sf_slope=0.,&
+          tq=0.,t0=0.,tb=0.
+     INTEGER :: type=0,use_simha_limits=0
+  END TYPE SFHPARAMS
+
+  TYPE TLSF
+     REAL(SP), DIMENSION(nspec) :: lsf=0.
+     REAL(SP) :: minlam=0.,maxlam=0.
+  END TYPE TLSF
+
+  TYPE(TLSF) :: lsfinfo
+
   !-----the following structures are not used in the public code-----!
   !--they are included here because some users of FSPS utilize them--!
 
